@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de IBS e CBS + Gerador SQL</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --border: #e2e8f0;
+            --accent: #2563eb;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --success-text: #166534;
+            --code-bg: #0f172a;
+            --code-text: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 850px;
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        header {
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .grid-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin: 20px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            grid-column: 1 / -1;
+        }
+
+        .results-panel {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .results-panel h2 {
+            font-size: 1.2rem;
+            color: var(--success-text);
+            margin-bottom: 16px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .result-item {
+            background-color: #ffffff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(22, 101, 52, 0.15);
+        }
+
+        .result-item span.label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .result-item span.value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .result-item.highlight span.value {
+            color: var(--primary);
+        }
+
+        /* Seção do SQL */
+        .sql-panel {
+            background-color: var(--code-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+            color: #ffffff;
+        }
+
+        .sql-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .sql-header h2 {
+            font-size: 1.1rem;
+            color: #f8fafc;
+        }
+
+        .btn-copy {
+            background-color: var(--accent);
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-copy:hover {
+            background-color: var(--primary-hover);
+        }
+
+        pre {
+            background-color: #020617;
+            padding: 14px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            color: var(--code-text);
+            border: 1px solid #1e293b;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Calculadora IBS & CBS + Script SQL</h1>
+        <p class="subtitle">Simulação e geração de UPDATE para a tabela <code>nfsit</code></p>
+    </header>
+
+    <form id="calcForm" onsubmit="return false;">
+        <div class="grid-form">
+            <!-- Dados do Item / Estabelecimento -->
+            <div class="form-group">
+                <label for="cod_estabe">Cód. Estabelecimento</label>
+                <input type="text" id="cod_estabe" value="001" oninput="calcular()">
+            </div>
+            <div class="form-group">
+                <label for="cod_produto">Cód. Produto</label>
+                <input type="text" id="cod_produto" value="PROD-001" oninput="calcular()">
+            </div>
+            <div class="form-group">
+                <label for="cod_lote">Cód. Lote</label>
+                <input type="text" id="cod_lote" value="LOTE-2026" oninput="calcular()">
+            </div>
+
+            <!-- Base de Cálculo -->
+            <div class="form-group full-width">
+                <div class="section-title">Base de Cálculo</div>
+            </div>
+            <div class="form-group full-width">
+                <label for="vlr_bas_ibscbs">Valor Base IBS/CBS (R$)</label>
+                <input type="number" id="vlr_bas_ibscbs" step="0.01" value="1000.00" oninput="calcular()">
+            </div>
+
+            <!-- Alíquotas CBS -->
+            <div class="form-group full-width">
+                <div class="section-title">CBS (Contribuição sobre Bens e Serviços)</div>
+            </div>
+            <div class="form-group">
+                <label for="per_cbs">Alíquota Base CBS (%)</label>
+                <input type="number" id="per_cbs" step="0.01" value="0.9" oninput="calcular()">
+            </div>
+            <div class="form-group">
+                <label for="per_redcbs">Redução CBS (%)</label>
+                <input type="number" id="per_redcbs" step="0.01" value="60" oninput="calcular()">
+            </div>
+
+            <!-- Alíquotas IBS UF -->
+            <div class="form-group full-width">
+                <div class="section-title">IBS (Imposto sobre Bens e Serviços)</div>
+            </div>
+            <div class="form-group">
+                <label for="per_ibsuf">Alíquota Base IBS UF (%)</label>
+                <input type="number" id="per_ibsuf" step="0.01" value="0.1" oninput="calcular()">
+            </div>
+            <div class="form-group">
+                <label for="per_redibsuf">Redução IBS UF (%)</label>
+                <input type="number" id="per_redibsuf" step="0.01" value="0" oninput="calcular()">
+            </div>
+            <div class="form-group">
+                <label for="per_redibsmun">Redução IBS Mun (%)</label>
+                <input type="number" id="per_redibsmun" step="0.01" value="0" oninput="calcular()">
+            </div>
+        </div>
+    </form>
+
+    <div class="results-panel">
+        <h2>Resumo dos Cálculos</h2>
+        <div class="results-grid">
+            <div class="result-item">
+                <span class="label">Alíquota Efetiva CBS (peref_cbs)</span>
+                <span class="value" id="peref_cbs_res">0,00%</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Valor CBS (vlr_cbs)</span>
+                <span class="value" id="vlr_cbs_res">R$ 0,00</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Alíquota Efetiva IBS UF (peref_ibsuf)</span>
+                <span class="value" id="peref_ibsuf_res">0,00%</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Valor IBS UF (vlr_ibsuf)</span>
+                <span class="value" id="vlr_ibsuf_res">R$ 0,00</span>
+            </div>
+            <div class="result-item highlight" style="grid-column: 1 / -1;">
+                <span class="label">Valor Total IBS + CBS (vlr_ibstot)</span>
+                <span class="value" id="vlr_ibstot_res">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel com instrução SQL UPDATE -->
+    <div class="sql-panel">
+        <div class="sql-header">
+            <h2>Comando SQL UPDATE Gerado</h2>
+            <button class="btn-copy" onclick="copiarSQL()">Copiar SQL</button>
+        </div>
+        <pre id="sql_code">-- O código SQL aparecerá aqui...</pre>
+    </div>
+
+    <footer>
+        <p>Ferramenta de Correção em Clientes | Tabela <code>nfsit</code></p>
+    </footer>
+</div>
+
+<script>
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarPorcentagem(valor) {
+        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + '%';
+    }
+
+    function calcular() {
+        const codEstabe = document.getElementById('cod_estabe').value.trim();
+        const codProduto = document.getElementById('cod_produto').value.trim();
+        const codLote = document.getElementById('cod_lote').value.trim();
+
+        const vlrBase = parseFloat(document.getElementById('vlr_bas_ibscbs').value) || 0;
+        
+        const perCbsVal = parseFloat(document.getElementById('per_cbs').value) || 0;
+        const perRedCbsVal = parseFloat(document.getElementById('per_redcbs').value) || 0;
+        
+        const perIbsufVal = parseFloat(document.getElementById('per_ibsuf').value) || 0;
+        const perRedIbsufVal = parseFloat(document.getElementById('per_redibsuf').value) || 0;
+        const perRedIbsmunVal = parseFloat(document.getElementById('per_redibsmun').value) || 0;
+
+        const perCbs = perCbsVal / 100;
+        const perRedCbs = perRedCbsVal / 100;
+        const perIbsuf = perIbsufVal / 100;
+        const perRedIbsuf = perRedIbsufVal / 100;
+
+        // Cálculos
+        const perefCbs = perCbs * (1 - perRedCbs);
+        const vlrCbs = vlrBase * perefCbs;
+
+        const perefIbsuf = perIbsuf * (1 - perRedIbsuf);
+        const vlrIbsuf = vlrBase * perefIbsuf;
+
+        const vlrIbstot = vlrCbs + vlrIbsuf;
+
+        // Exibição na tela
+        document.getElementById('peref_cbs_res').innerText = formatarPorcentagem(perefCbs * 100);
+        document.getElementById('vlr_cbs_res').innerText = formatarMoeda(vlrCbs);
+        
+        document.getElementById('peref_ibsuf_res').innerText = formatarPorcentagem(perefIbsuf * 100);
+        document.getElementById('vlr_ibsuf_res').innerText = formatarMoeda(vlrIbsuf);
+
+        document.getElementById('vlr_ibstot_res').innerText = formatarMoeda(vlrIbstot);
+
+        // Gerar comando UPDATE SQL
+        let sql = `UPDATE nfsit\nSET\n`;
+        sql += `  vlr_bas_ibscbs = ${vlrBase.toFixed(2)},\n`;
+        sql += `  per_cbs = ${perCbsVal.toFixed(4)},\n`;
+        sql += `  per_redcbs = ${perRedCbsVal.toFixed(4)},\n`;
+        sql += `  peref_cbs = ${(perefCbs * 100).toFixed(4)},\n`;
+        sql += `  vlr_cbs = ${vlrCbs.toFixed(2)},\n`;
+        sql += `  per_ibsuf = ${perIbsufVal.toFixed(4)},\n`;
+        sql += `  per_redibsmun = ${perRedIbsmunVal.toFixed(4)},\n`;
+        sql += `  per_redibsuf = ${perRedIbsufVal.toFixed(4)},\n`;
+        sql += `  peref_ibsuf = ${(perefIbsuf * 100).toFixed(4)},\n`;
+        sql += `  vlr_ibsuf = ${vlrIbsuf.toFixed(2)},\n`;
+        sql += `  vlr_ibstot = ${vlrIbstot.toFixed(2)}\n`;
+        sql += `WHERE cod_estabe = '${codEstabe}'\n`;
+        sql += `  AND cod_produto = '${codProduto}'\n`;
+        sql += `  AND cod_lote = '${codLote}';`;
+
+        document.getElementById('sql_code').innerText = sql;
+    }
+
+    function copiarSQL() {
+        const textToCopy = document.getElementById('sql_code').innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.querySelector('.btn-copy');
+            btn.innerText = 'Copiado!';
+            btn.style.backgroundColor = '#166534';
+            setTimeout(() => {
+                btn.innerText = 'Copiar SQL';
+                btn.style.backgroundColor = 'var(--accent)';
+            }, 2000);
+        });
+    }
+
+    window.onload = calcular;
+</script>
+
+</body>
+</html>
