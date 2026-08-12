@@ -173,11 +173,19 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .sql-header h2 {
             font-size: 1.1rem;
             color: #f8fafc;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn-copy {
@@ -196,6 +204,14 @@
             background-color: var(--primary-hover);
         }
 
+        .btn-copy.secondary {
+            background-color: #475569;
+        }
+
+        .btn-copy.secondary:hover {
+            background-color: #334155;
+        }
+
         pre {
             background-color: #020617;
             padding: 14px;
@@ -207,6 +223,11 @@
             border: 1px solid #1e293b;
             white-space: pre-wrap;
             word-break: break-all;
+            margin-bottom: 16px;
+        }
+
+        pre:last-child {
+            margin-bottom: 0;
         }
 
         footer {
@@ -222,7 +243,7 @@
 <div class="container">
     <header>
         <h1>Calculadora IBS & CBS + Script SQL</h1>
-        <p class="subtitle">Simulação e geração de UPDATE para a tabela <code>nfsit</code></p>
+        <p class="subtitle">Simulação e geração de UPDATE para as tabelas <code>nfsit</code> e <code>NFSCB</code></p>
     </header>
 
     <form id="calcForm" onsubmit="return false;">
@@ -319,17 +340,26 @@
         </div>
     </div>
 
-    <!-- Painel com instrução SQL UPDATE -->
+    <!-- Painel com instrução SQL UPDATE nfsit -->
     <div class="sql-panel">
         <div class="sql-header">
-            <h2>Comando SQL UPDATE Gerado</h2>
-            <button class="btn-copy" onclick="copiarSQL()">Copiar SQL</button>
+            <h2>Comando SQL UPDATE (nfsit - Item)</h2>
+            <button class="btn-copy" id="btn_copy_nfsit" onclick="copiarSQL('sql_nfsit', 'btn_copy_nfsit')">Copiar SQL nfsit</button>
         </div>
-        <pre id="sql_code">-- O código SQL aparecerá aqui...</pre>
+        <pre id="sql_nfsit">-- O código SQL para nfsit aparecerá aqui...</pre>
+    </div>
+
+    <!-- Painel com instrução SQL UPDATE NFSCB -->
+    <div class="sql-panel">
+        <div class="sql-header">
+            <h2>Comando SQL UPDATE (NFSCB - Cabeçalho)</h2>
+            <button class="btn-copy secondary" id="btn_copy_nfscb" onclick="copiarSQL('sql_nfscb', 'btn_copy_nfscb')">Copiar SQL NFSCB</button>
+        </div>
+        <pre id="sql_nfscb">-- O código SQL para NFSCB aparecerá aqui...</pre>
     </div>
 
     <footer>
-        <p>Ferramenta de Correção em Clientes | Tabela <code>nfsit</code></p>
+        <p>Ferramenta de Correção em Clientes | Tabelas <code>nfsit</code> e <code>NFSCB</code></p>
     </footer>
 </div>
 
@@ -381,37 +411,50 @@
 
         document.getElementById('vlr_ibstot_res').innerText = formatarMoeda(vlrIbstot);
 
-        // Gerar comando UPDATE SQL
-        let sql = `UPDATE nfsit\nSET\n`;
-        sql += `  vlr_bas_ibscbs = ${vlrBase.toFixed(2)},\n`;
-        sql += `  per_cbs = ${perCbsVal.toFixed(4)},\n`;
-        sql += `  per_redcbs = ${perRedCbsVal.toFixed(4)},\n`;
-        sql += `  peref_cbs = ${(perefCbs * 100).toFixed(4)},\n`;
-        sql += `  vlr_cbs = ${vlrCbs.toFixed(2)},\n`;
-        sql += `  per_ibsuf = ${perIbsufVal.toFixed(4)},\n`;
-        sql += `  per_redibsmun = ${perRedIbsmunVal.toFixed(4)},\n`;
-        sql += `  per_redibsuf = ${perRedIbsufVal.toFixed(4)},\n`;
-        sql += `  peref_ibsuf = ${(perefIbsuf * 100).toFixed(4)},\n`;
-        sql += `  vlr_ibsuf = ${vlrIbsuf.toFixed(2)},\n`;
-        sql += `  vlr_ibstot = ${vlrIbstot.toFixed(2)}\n`;
-        sql += `WHERE cod_estabe = '${codEstabe}'\n`;
-        if (numNota) sql += `  AND num_nota = '${numNota}'\n`;
-        if (serNota) sql += `  AND ser_nota = '${serNota}'\n`;
-        sql += `  AND cod_produto = '${codProduto}'\n`;
-        sql += `  AND cod_lote = '${codLote}';`;
+        // 1. Gerar comando UPDATE SQL para nfsit
+        let sqlNfsit = `UPDATE nfsit\nSET\n`;
+        sqlNfsit += `  vlr_bas_ibscbs = ${vlrBase.toFixed(2)},\n`;
+        sqlNfsit += `  per_cbs = ${perCbsVal.toFixed(4)},\n`;
+        sqlNfsit += `  per_redcbs = ${perRedCbsVal.toFixed(4)},\n`;
+        sqlNfsit += `  peref_cbs = ${(perefCbs * 100).toFixed(4)},\n`;
+        sqlNfsit += `  vlr_cbs = ${vlrCbs.toFixed(2)},\n`;
+        sqlNfsit += `  per_ibsuf = ${perIbsufVal.toFixed(4)},\n`;
+        sqlNfsit += `  per_redibsmun = ${perRedIbsmunVal.toFixed(4)},\n`;
+        sqlNfsit += `  per_redibsuf = ${perRedIbsufVal.toFixed(4)},\n`;
+        sqlNfsit += `  peref_ibsuf = ${(perefIbsuf * 100).toFixed(4)},\n`;
+        sqlNfsit += `  vlr_ibsuf = ${vlrIbsuf.toFixed(2)},\n`;
+        sqlNfsit += `  vlr_ibstot = ${vlrIbstot.toFixed(2)}\n`;
+        sqlNfsit += `WHERE cod_estabe = '${codEstabe}'\n`;
+        if (numNota) sqlNfsit += `  AND num_nota = '${numNota}'\n`;
+        if (serNota) sqlNfsit += `  AND ser_nota = '${serNota}'\n`;
+        sqlNfsit += `  AND cod_produto = '${codProduto}'\n`;
+        sqlNfsit += `  AND cod_lote = '${codLote}';`;
 
-        document.getElementById('sql_code').innerText = sql;
+        document.getElementById('sql_nfsit').innerText = sqlNfsit;
+
+        // 2. Gerar comando UPDATE SQL para NFSCB
+        let sqlNfscb = `UPDATE NFSCB\nSET\n`;
+        sqlNfscb += `  vlr_bas_ibscbs = ${vlrBase.toFixed(2)},\n`;
+        sqlNfscb += `  vlr_cbs = ${vlrCbs.toFixed(2)},\n`;
+        sqlNfscb += `  vlr_ibsuf = ${vlrIbsuf.toFixed(2)}\n`;
+        sqlNfscb += `WHERE cod_estabe = '${codEstabe}'\n`;
+        if (numNota) sqlNfscb += `  AND num_nota = '${numNota}'\n`;
+        if (serNota) sqlNfscb += `  AND ser_nota = '${serNota}';`;
+
+        document.getElementById('sql_nfscb').innerText = sqlNfscb;
     }
 
-    function copiarSQL() {
-        const textToCopy = document.getElementById('sql_code').innerText;
+    function copiarSQL(elementId, btnId) {
+        const textToCopy = document.getElementById(elementId).innerText;
+        const btn = document.getElementById(btnId);
+        const originalText = btn.innerText;
+
         navigator.clipboard.writeText(textToCopy).then(() => {
-            const btn = document.querySelector('.btn-copy');
             btn.innerText = 'Copiado!';
             btn.style.backgroundColor = '#166534';
             setTimeout(() => {
-                btn.innerText = 'Copiar SQL';
-                btn.style.backgroundColor = 'var(--accent)';
+                btn.innerText = originalText;
+                btn.style.backgroundColor = '';
             }, 2000);
         });
     }
